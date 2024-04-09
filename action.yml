@@ -35,9 +35,6 @@ outputs:
   tag-latest:
     description: "Image Tag with latest"
     value: ${{ steps.envs.outputs.tag-latest }}
-  build-options:
-    description: "Image build options"
-    value: ${{ steps.envs.outputs.build-options }}
   branch:
     description: "Branch name"
     value: ${{ steps.envs.outputs.branch }}
