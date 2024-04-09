@@ -1,0 +1,102 @@
+name: 'Generate Envs'
+description: 'Generate Envs from GitHub Repository'
+
+inputs:
+  app:
+    required: true
+    description: "App Name"
+  version:
+    required: true
+    description: "App Version, ex: 1.0.0"
+  image-prefix:
+    description: "full image name, ex: [image-prefix]/[image]"
+  branch-production:
+    description: "Production Branch"
+    default: "main"
+outputs:
+  app:
+    description: "App Name"
+    value: ${{ steps.envs.outputs.app }}
+  version:
+    description: "App Version"
+    value: ${{ steps.envs.outputs.version }}
+  image:
+    description: "Image Name"
+    value: ${{ steps.envs.outputs.image }}
+  image-fullName:
+    description: "Image Full Name"
+    value: ${{ steps.envs.outputs.image-fullName }}
+  tag:
+    description: "Image Tag"
+    value: ${{ steps.envs.outputs.tag }}
+  tag-hash:
+    description: "Image Tag with hash"
+    value: ${{ steps.envs.outputs.tag-hash }}
+  tag-latest:
+    description: "Image Tag with latest"
+    value: ${{ steps.envs.outputs.tag-latest }}
+  build-options:
+    description: "Image build options"
+    value: ${{ steps.envs.outputs.build-options }}
+  branch:
+    description: "Branch name"
+    value: ${{ steps.envs.outputs.branch }}
+  actor:
+    description: "Actor"
+    value: ${{ steps.envs.outputs.actor }}
+  email:
+    description: "Email"
+    value: ${{ steps.envs.outputs.email }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 18
+    - name: Install packages
+      shell: bash
+      run: npm i -g semver
+    - name: Set Environments
+      id: envs
+      shell: bash
+      run: |
+        APP="${{ inputs.app }}"
+        VERSION="${{ inputs.version }}"
+        CORE_VERSION=`semver -c $VERSION`
+        BRANCH=`echo "${GITHUB_REF_NAME,,}" | sed 's/\//-/g'`
+        IMAGE=`echo "${APP,,}" | sed 's/\./-/g'`
+        IMAGE_FULL_NAME=$IMAGE
+
+        if [ ! -z "${{ inputs.image-prefix }}" ]; then
+          IMAGE_FULL_NAME="${{ inputs.image-prefix }}/${IMAGE}"
+        fi
+
+        COMMIT_SHORT_SHA=`git rev-parse --short ${GITHUB_SHA}`
+        COMMIT_COUNT=`git rev-list --count HEAD`
+        COMMIT_TIME=`git show -s --format=%ct HEAD`
+        TAG_LATEST="${BRANCH}-latest"
+        USERNAME=`git log -n 1 --pretty=format:%an`
+        EMAIL=`git log -n 1 --pretty=format:%ae`
+
+        TAG="${VERSION}-${BRANCH}.${COMMIT_TIME}"
+
+        if [ "$VERSION" != "$CORE_VERSION" ]; then
+          TAG="${VERSION}.${COMMIT_TIME}"
+        fi
+
+        if [ "$GITHUB_REF_NAME" = "main" ]; then
+          TAG="${VERSION}.${COMMIT_TIME}"
+          TAG_LATEST="latest"
+        fi
+
+        echo "app=$APP" >> $GITHUB_OUTPUT
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "image=$IMAGE" >> $GITHUB_OUTPUT
+        echo "image-fullName=$IMAGE_FULL_NAME" >> $GITHUB_OUTPUT
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+        echo "tag-hash=$COMMIT_SHORT_SHA" >> $GITHUB_OUTPUT
+        echo "tag-latest=$TAG_LATEST" >> $GITHUB_OUTPUT
+        echo "branch=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
+        echo "actor=$USERNAME" >> $GITHUB_OUTPUT
+        echo "email=$EMAIL" >> $GITHUB_OUTPUT
