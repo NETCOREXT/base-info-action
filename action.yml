@@ -8,6 +8,7 @@ inputs:
   version:
     required: true
     description: "App Version, ex: 1.0.0"
+    default: "1.0.0"
   image-prefix:
     description: "full image name, ex: [image-prefix]/[image]"
   branch-production:
